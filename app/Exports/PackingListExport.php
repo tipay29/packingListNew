@@ -93,6 +93,10 @@ class PackingListExport implements FromCollection,WithTitle,WithEvents,WithDrawi
         $this->pl_no_size_mcq = [];
         $this->pl_carton_list = [];
 
+        $this->pl_first_mcq = [];
+        $this->pl_second_mcq = [];
+        $this->pl_third_mcq = [];
+
         $this->initiateSizeDetails();
         //initiate pl sizes sort, pl size codes , pl quantities by sizes
         //dump($this->pl_sizes_sort);
@@ -298,6 +302,8 @@ class PackingListExport implements FromCollection,WithTitle,WithEvents,WithDrawi
         $event->sheet->setCellValue('G1','PACKING LIST')->getStyle('G1:N1')->applyFromArray($style);
         $event->sheet->mergeCells('G2:N2');
         $event->sheet->setCellValue('G2',$this->packing_list['pl_factory_po'])->getStyle('G2:N2')->applyFromArray($style)->applyFromArray(['font' => ['size' => 10,],]);
+        $event->sheet->mergeCells('G3:N3');
+        $event->sheet->setCellValue('G3',$this->packing_list['pl_ship_mode'])->getStyle('G3:N3')->applyFromArray($style)->applyFromArray(['font' => ['size' => 10,],]);
         //DISPLAY PHOTO
         $worksheet = $event->sheet->getDelegate();
         $this->setBrandLogo($worksheet);
@@ -401,42 +407,44 @@ class PackingListExport implements FromCollection,WithTitle,WithEvents,WithDrawi
         for($a=26;$a < (26+$this->packing_list['pl_no_of_sizes']);$a++){
             $event->sheet->setCellValue($this->column_letter[$a].'2',$this->pl_sizes_sort[$ac]);
 
-            if(count($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])) !== 0){
-                //CHECK IF HAVE STYLE SIZE DETAILS
-                $weight = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->toArray())[0]['style_weight'];
-                $event->sheet->setCellValue($this->column_letter[$a].'3',$weight);
-                $this->pl_weight[$ac] = $weight;
-                $this->pl_weight_cell[$ac] = $this->column_letter[$a].'3';
+            if(isset($style->mcq_contents)){
+                if(count($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])) !== 0){
+                    //CHECK IF HAVE STYLE SIZE DETAILS
+                    $weight = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->toArray())[0]['style_weight'];
+                    $event->sheet->setCellValue($this->column_letter[$a].'3',$weight);
+                    $this->pl_weight[$ac] = $weight;
+                    $this->pl_weight_cell[$ac] = $this->column_letter[$a].'3';
 
-                $first_mcq = $style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->max('mcq');
-                $first_carton = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->where('mcq',$first_mcq)->toArray())[0]['carton_measurement'];
-                $this->pl_first_mcq[$ac] = $first_mcq;
-                $this->pl_first_carton[$ac] = $first_carton;
-                $event->sheet->setCellValue($this->column_letter[$a].'4',$first_carton);
-                $event->sheet->setCellValue($this->column_letter[$a].'5',$first_mcq);
+                    $first_mcq = $style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->max('mcq');
+                    $first_carton = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->where('mcq',$first_mcq)->toArray())[0]['carton_measurement'];
+                    $this->pl_first_mcq[$ac] = $first_mcq;
+                    $this->pl_first_carton[$ac] = $first_carton;
+                    $event->sheet->setCellValue($this->column_letter[$a].'4',$first_carton);
+                    $event->sheet->setCellValue($this->column_letter[$a].'5',$first_mcq);
 
 
 
-                if(count($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])) >1){
-                    $second_mcq =  (int)array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[1]['mcq'];
-                    $second_carton = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[1]['carton_measurement'];
-                    $this->pl_second_mcq[$ac] = $second_mcq;
-                    $this->pl_second_carton[$ac] = $second_carton;
-                    $event->sheet->setCellValue($this->column_letter[$a].'6',$second_carton);
-                    $event->sheet->setCellValue($this->column_letter[$a].'7',$second_mcq);
+                    if(count($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])) >1){
+                        $second_mcq =  (int)array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[1]['mcq'];
+                        $second_carton = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[1]['carton_measurement'];
+                        $this->pl_second_mcq[$ac] = $second_mcq;
+                        $this->pl_second_carton[$ac] = $second_carton;
+                        $event->sheet->setCellValue($this->column_letter[$a].'6',$second_carton);
+                        $event->sheet->setCellValue($this->column_letter[$a].'7',$second_mcq);
+
+                    }
+
+                    if(count($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])) >2){
+                        $third_mcq =  (int)array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[2]['mcq'];
+                        $third_carton = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[2]['carton_measurement'];
+                        $this->pl_third_mcq[$ac] = $third_mcq;
+                        $this->pl_third_carton[$ac] = $third_carton;
+                        $event->sheet->setCellValue($this->column_letter[$a].'8',$third_carton);
+                        $event->sheet->setCellValue($this->column_letter[$a].'9',$third_mcq);
+                    }
+
 
                 }
-
-                if(count($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])) >2){
-                    $third_mcq =  (int)array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[2]['mcq'];
-                    $third_carton = array_values($style->mcq_contents->where('style_size',$this->pl_sizes_sort[$ac])->sortByDesc('mcq')->toArray())[2]['carton_measurement'];
-                    $this->pl_third_mcq[$ac] = $third_mcq;
-                    $this->pl_third_carton[$ac] = $third_carton;
-                    $event->sheet->setCellValue($this->column_letter[$a].'8',$third_carton);
-                    $event->sheet->setCellValue($this->column_letter[$a].'9',$third_mcq);
-                }
-
-
             }
             $ac++;
         }
